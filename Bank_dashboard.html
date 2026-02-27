@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank Xizmatlari Monitoringi</title>
+    
+    <!-- Chart.js & Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <!-- Highcharts Maps -->
+    <script src="https://code.highcharts.com/maps/highmaps.js"></script>
+    <script src="https://code.highcharts.com/mapdata/countries/uz/uz-all.js"></script>
+    <!-- SheetJS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Vue.js -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --primary: #003366; --accent: #D4AF37; --bg: #f4f6f9; --card: #ffffff;
+            --text: #333333; --border: #e0e0e0; --radius: 10px; --shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        [data-theme="dark"] {
+            --primary: #66b2ff; --accent: #D4AF37; --bg: #121212; --card: #1e1e1e;
+            --text: #e0e0e0; --border: #333; --shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); color: var(--text); margin: 0; min-height: 100vh; display: flex; flex-direction: column; }
+        .container { max-width: 1400px; width: 95%; margin: 20px auto; flex: 1; }
+
+        /* Header */
+        header { background: var(--card); padding: 20px; border-radius: var(--radius); box-shadow: var(--shadow); border-left: 5px solid var(--accent); margin-bottom: 20px; }
+        .head-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 15px; }
+        .brand { display: flex; align-items: center; gap: 15px; }
+        .brand img { height: 50px; }
+        .brand h1 { margin: 0; font-size: 1.4rem; color: var(--primary); }
+        .controls { display: flex; gap: 8px; }
+        
+        .filters { display: flex; gap: 10px; flex-wrap: wrap; }
+        select, button { padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--text); outline: none; cursor: pointer; }
+        select { flex: 1; min-width: 120px; }
+        .btn-go { background: var(--primary); color: white; border: none; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; }
+        .btn-reset { color: #dc3545; border-color: #dc3545; }
+        .active-lang { background: var(--accent); color: #000; font-weight: bold; }
+
+        /* KPI */
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .kpi-card { 
+            background: var(--card); padding: 15px; border-radius: var(--radius); box-shadow: var(--shadow); 
+            text-align: center; border: 1px solid var(--border); position: relative; overflow: hidden; 
+            cursor: pointer; transition: transform 0.2s;
+        }
+        .kpi-card:hover { transform: translateY(-3px); border-color: var(--accent); }
+        .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--accent); }
+        .kpi-val { font-size: 1.6rem; font-weight: bold; color: var(--primary); margin: 5px 0; }
+        .kpi-lbl { font-size: 0.8rem; text-transform: uppercase; opacity: 0.7; font-weight: 600; }
+
+        /* Charts */
+        .chart-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        .card { background: var(--card); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); border: 1px solid var(--border); display: flex; flex-direction: column; }
+        .card-h { font-weight: bold; color: var(--primary); margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px; display: flex; justify-content: space-between; }
+        .chart-box { position: relative; height: 300px; max-height: 300px; width: 100%; }
+        .map-container { height: 500px; width: 100%; }
+
+        /* Table */
+        .table-wrap { overflow-x: auto; max-height: 600px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th { background: var(--primary); color: white; padding: 12px; position: sticky; top: 0; z-index: 10; cursor: pointer; white-space: nowrap; text-align: center; }
+        td { padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--card); text-align: center; white-space: nowrap; }
+        .rank { font-weight: bold; color: var(--accent); }
+        .bank-name { text-align: left; font-weight: 600; }
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 4px; color: #fff; font-weight: bold; min-width: 35px; }
+        
+        .footer { text-align: center; padding: 20px; margin-top: auto; border-top: 1px solid var(--border); background: var(--card); }
+        .footer a { color: var(--primary); text-decoration: none; font-weight: bold; }
+        .loader { position: fixed; inset: 0; background: rgba(0,0,0,0.6); color: white; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; z-index: 999; }
+
+        /* MODAL STYLES */
+        .modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
+        .modal-content { background: var(--card); color: var(--text); width: 90%; max-width: 1000px; max-height: 90vh; overflow-y: auto; border-radius: var(--radius); padding: 20px; position: relative; box-shadow: 0 5px 20px rgba(0,0,0,0.3); }
+        .modal-close { position: absolute; top: 15px; right: 15px; background: transparent; border: none; font-size: 1.5rem; color: var(--text); cursor: pointer; }
+        .modal-charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px; }
+        .modal-chart-item { background: var(--bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border); }
+        .modal-title { font-size: 1.5rem; color: var(--primary); border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-bottom: 10px; font-weight: 700; }
+
+        @media (max-width: 768px) {
+            .head-top, .filters { flex-direction: column; }
+            .filters select, .filters button, .filters a { width: 100%; }
+            .modal-content { width: 95%; margin: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <!-- Loader -->
+    <div class="loader" v-if="loading"><i class="fas fa-spinner fa-spin"></i> &nbsp; {{ t('loading') }}</div>
+
+    <!-- Modal Window -->
+    <div class="modal-mask" v-if="showModal" @click.self="closeModal">
+        <div class="modal-content">
+            <button class="modal-close" @click="closeModal">&times;</button>
+            <div class="modal-title">{{ t(activeModule.key) }} - {{ t('details') }}</div>
+            <div class="modal-charts-grid">
+                <div v-for="(sub, index) in activeModuleSubCharts" :key="index" class="modal-chart-item">
+                    <h4 style="margin:0 0 10px; font-size:1rem; text-align:center; color:var(--primary)">{{ t(sub.label) }}</h4>
+                    <div style="height: 250px; position: relative;">
+                        <canvas :id="'modalChart-' + index"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="head-top">
+                <div class="brand">
+                    <img src="https://raw.githubusercontent.com/sunattagayev-cloud/So-rovnomalar/refs/heads/images/Logo_03.svg" alt="Logo">
+                    <div><h1>{{ t('header_title') }}</h1><small style="opacity:0.7">{{ t('last_updated') }}: {{ lastUpdated }}</small></div>
+                </div>
+                <div class="controls">
+                    <button :class="{'active-lang':lang==='uz'}" @click="lang='uz'">UZ</button>
+                    <button :class="{'active-lang':lang==='ru'}" @click="lang='ru'">RU</button>
+                    <button :class="{'active-lang':lang==='en'}" @click="lang='en'">EN</button>
+                    <button @click="toggleTheme"><i class="fas" :class="theme==='dark'?'fa-sun':'fa-moon'"></i></button>
+                </div>
+            </div>
+            <div class="filters">
+                <select v-model="filters.year"><option value="">{{ t('filter_year') }}: {{ t('all') }}</option><option v-for="y in uniqueYears" :value="y">{{ y }}</option></select>
+                <select v-model="filters.month"><option value="">{{ t('filter_month') }}: {{ t('all') }}</option><option v-for="(m,i) in monthNames" :value="i" v-if="m">{{ m }}</option></select>
+                <select v-model="filters.region" @change="filters.district=''"><option value="">{{ t('filter_region') }}: {{ t('all') }}</option><option v-for="r in uniqueRegions" :value="r">{{ r }}</option></select>
+                <select v-model="filters.district"><option value="">{{ t('filter_district') }}: {{ t('all') }}</option><option v-for="d in uniqueDistricts" :value="d">{{ d }}</option></select>
+                <select v-model="filters.bank"><option value="">{{ t('filter_bank') }}: {{ t('all') }}</option><option v-for="b in uniqueBanks" :value="b">{{ b }}</option></select>
+                <button class="btn-reset" @click="resetFilters" style="flex:0 0 auto"><i class="fas fa-times"></i></button>
+                <a href="https://sunattagayev-cloud.github.io/Bank-mijozlari-uchun-so-rovnoma/" target="_blank" class="btn-go" style="padding:8px 15px; border-radius:6px;">{{ t('survey_btn') }} <i class="fas fa-arrow-right"></i></a>
+            </div>
+        </header>
+
+        <!-- KPI -->
+        <div class="kpi-grid">
+            <div class="kpi-card" v-for="mod in modules" :key="mod.key" @click="openModal(mod)" title="Batafsil ko'rish uchun bosing">
+                <div class="kpi-lbl">{{ t(mod.key) }} <i class="fas fa-chart-bar" style="margin-left:5px; opacity:0.5"></i></div>
+                <div class="kpi-val" :style="{color: getScoreColorText(getModuleStat(mod.field).avg)}">{{ getModuleStat(mod.field).avg }}</div>
+                <div style="font-size:0.75em; opacity:0.6">{{ getModuleStat(mod.field).count }} {{ t('votes') }}</div>
+            </div>
+            <div class="kpi-card" style="border-left:4px solid var(--primary); cursor: default;">
+                <div class="kpi-lbl">{{ t('total_participants') }}</div>
+                <div class="kpi-val" style="color:var(--text)">{{ filteredData.length }}</div>
+                <div style="font-size:0.75em; opacity:0.6">{{ t('filtered_rez') }}</div>
+            </div>
+        </div>
+
+        <!-- Charts 1 -->
+        <div class="chart-row">
+            <div class="card"><div class="card-h">{{ t('chart_client_type') }}</div><div class="chart-box"><canvas id="chartClient"></canvas></div></div>
+            <div class="card"><div class="card-h">{{ t('chart_age') }}</div><div class="chart-box"><canvas id="chartAge"></canvas></div></div>
+            <div class="card"><div class="card-h">{{ t('chart_gender') }}</div><div class="chart-box"><canvas id="chartGender"></canvas></div></div>
+        </div>
+
+        <!-- Charts 2 -->
+        <div class="chart-row" style="grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));">
+            <div class="card"><div class="card-h">{{ t('chart_source') }}</div><div class="chart-box"><canvas id="chartSource"></canvas></div></div>
+            <div class="card"><div class="card-h">{{ t('chart_services') }}</div><div class="chart-box"><canvas id="chartServices"></canvas></div></div>
+        </div>
+
+        <!-- Map -->
+        <div class="card" v-show="!filters.region && !filters.district" style="margin-bottom:20px;">
+            <div class="card-h">{{ t('map_title') }}</div>
+            <div id="mapContainer" class="map-container"></div>
+        </div>
+
+        <!-- Table -->
+        <div class="card">
+            <div class="card-h">
+                <span>{{ t('table_title') }}</span>
+                <button class="btn-go" onclick="exportTable()" style="background:#28a745; font-size:0.8rem"><i class="fas fa-file-excel"></i> Excel</button>
+            </div>
+            <div class="table-wrap">
+                <table id="ratingTable">
+                    <thead>
+                        <tr>
+                            <th>№</th>
+                            <th @click="sort('bank')">{{ t('th_bank') }} <i class="fas" :class="sortIcon('bank')"></i></th>
+                            <th v-for="mod in modules" @click="sort(mod.key)">{{ t(mod.key).split(':')[1] }} <i class="fas" :class="sortIcon(mod.key)"></i></th>
+                            <th @click="sort('total')" style="background:#222">{{ t('th_total_avg') }} <i class="fas" :class="sortIcon('total')"></i></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(row, idx) in sortedTableData" :key="row.bank">
+                            <td class="rank">{{ idx + 1 }}</td>
+                            <td class="bank-name">{{ row.bank }}</td>
+                            <td v-for="mod in modules">
+                                <span v-if="row[mod.key].count > 0" class="badge" :style="{background: getColor(row[mod.key].avg)}">{{ row[mod.key].avg.toFixed(1) }}</span>
+                                <span v-else style="opacity:0.2">-</span>
+                            </td>
+                            <td style="border-left:2px solid var(--accent); background:rgba(212,175,55,0.05)">
+                                <span class="badge" :style="{background: getColor(row.totalAvg)}">{{ row.totalAvg.toFixed(2) }}</span>
+                                <div style="font-size:0.75em; opacity:0.6">({{ row.totalCount }})</div>
+                            </td>
+                        </tr>
+                        <tr v-if="sortedTableData.length === 0"><td colspan="9" style="padding:20px; opacity:0.6">{{ t('no_data') }}</td></tr>
+                    </tbody>
+                </table>
+                <div style="font-size:0.8em; margin-top:10px; opacity:0.7; font-style:italic; text-align:right">* {{ t('min_votes_note') }}</div>
+            </div>
+        </div>
+
+        <div class="footer"><a href="https://snsratings.uz/" target="_blank">&copy; 2026 Standard and Sensitive Ratings.</a></div>
+    </div>
+</div>
+
+<script>
+    // Pluginni ro'yxatdan o'tkazish
+    Chart.register(ChartDataLabels);
+    const API_URL = "https://raw.githubusercontent.com/sunattagayev-cloud/So-rovnomalar/refs/heads/jsons/Banklar_anketa.json";
+
+    const translations = {
+        uz: {
+            header_title: "Tijorat banklari mijozlari so'rovnomasi natijalari", last_updated: "So'nggi yangilanish", loading: "Yuklanmoqda...",
+            filter_year: "Yil", filter_month: "Oy", filter_region: "Hudud", filter_district: "Tuman", filter_bank: "Bank", all: "Barchasi",
+            survey_btn: "So'rovnomaga o'tish", votes: "ta", total_participants: "Jami", filtered_rez: "Filtr bo'yicha", details: "Batafsil Tahlil",
+            MOD_A: "A: Ofis", MOD_B: "B: Kredit", MOD_C: "C: Omonat", MOD_D: "D: Karta", MOD_E: "E: Ilova", MOD_F: "F: Bankomat", MOD_G: "G: Aloqa",
+            chart_client_type: "Mijoz Tipi", chart_age: "Yosh", chart_gender: "Jinsi", chart_source: "Manba", chart_services: "Xizmatlar",
+            map_title: "Hududlar Kesimida Faollik", table_title: "Banklarning CSI indeksi", th_bank: "Bank Nomi", th_total_avg: "CSI (Index)",
+            no_data: "Ma'lumot yo'q yoki ovozlar 5 tadan kam.", min_votes_note: "Reyting faqat 5 tadan ko'p ovoz olgan banklar uchun.",
+            months: ["", "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun", "Iyul", "Avgust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr"],
+            // Sub-chart labels
+            navbat: "Xizmat navbati", xodim: "Xodimlar muomalasi", sharoit: "Ofis sharoiti",
+            qiyinchilik: "Kredit olish qiyinchiligi", tulov: "To'lov qulayligi", shaffof: "Shaffoflik",
+            muhim: "Omonatdagi muhim omil", jarayon: "To'lov jarayoni",
+            ochish: "Karta ochish", muammo: "Karta muammolari",
+            afzallik: "Ilova afzalligi", barqaror: "Barqarorlik",
+            topish: "Bankomat topish", holat: "Texnik holati",
+            kutish: "Operatorni kutish", yechim: "Muammo yechimi"
+        },
+        ru: {
+            header_title: "Результаты опроса клиентов коммерческих банков", last_updated: "Обновлено", loading: "Загрузка...",
+            filter_year: "Год", filter_month: "Месяц", filter_region: "Регион", filter_district: "Район", filter_bank: "Банк", all: "Все",
+            survey_btn: "Пройти опрос", votes: "голосов", total_participants: "Всего", filtered_rez: "По фильтру", details: "Подробный анализ",
+            MOD_A: "A: Офис", MOD_B: "B: Кредит", MOD_C: "C: Вклад", MOD_D: "D: Карта", MOD_E: "E: Прил.", MOD_F: "F: Банкомат", MOD_G: "G: Связь",
+            chart_client_type: "Тип клиента", chart_age: "Возраст", chart_gender: "Пол", chart_source: "Источник", chart_services: "Услуги",
+            map_title: "Активность по регионам", table_title: "Индекс CSI банков", th_bank: "Банк", th_total_avg: "CSI (Индекс)",
+            no_data: "Нет данных или голосов < 5.", min_votes_note: "В рейтинге банки с > 5 голосами.",
+            months: ["", "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"],
+            navbat: "Очередь", xodim: "Персонал", sharoit: "Условия",
+            qiyinchilik: "Сложность кредита", tulov: "Удобство оплаты", shaffof: "Прозрачность",
+            muhim: "Важно во вкладе", jarayon: "Процесс выплат",
+            ochish: "Открытие карты", muammo: "Проблемы с картой",
+            afzallik: "Преимущество", barqaror: "Стабильность",
+            topish: "Поиск банкомата", holat: "Тех. состояние",
+            kutish: "Ожидание оператора", yechim: "Решение проблемы"
+        },
+        en: {
+            header_title: "Bank Customer Survey Results", last_updated: "Updated", loading: "Loading...",
+            filter_year: "Year", filter_month: "Month", filter_region: "Region", filter_district: "District", filter_bank: "Bank", all: "All",
+            survey_btn: "Take Survey", votes: "votes", total_participants: "Total", filtered_rez: "Filtered", details: "Detailed Analysis",
+            MOD_A: "A: Office", MOD_B: "B: Credit", MOD_C: "C: Deposit", MOD_D: "D: Card", MOD_E: "E: App", MOD_F: "F: ATM", MOD_G: "G: Call",
+            chart_client_type: "Client Type", chart_age: "Age", chart_gender: "Gender", chart_source: "Source", chart_services: "Services",
+            map_title: "Regional Activity", table_title: "Bank CSI Index", th_bank: "Bank", th_total_avg: "CSI (Index)",
+            no_data: "No data or votes < 5.", min_votes_note: "Rating shows banks with > 5 votes.",
+            months: ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+            navbat: "Queue", xodim: "Staff", sharoit: "Conditions",
+            qiyinchilik: "Loan difficulty", tulov: "Payment ease", shaffof: "Transparency",
+            muhim: "Deposit priority", jarayon: "Payout process",
+            ochish: "Opening card", muammo: "Card issues",
+            afzallik: "App advantage", barqaror: "Stability",
+            topish: "Finding ATM", holat: "Tech condition",
+            kutish: "Wait time", yechim: "Problem solving"
+        }
+    };
+
+    new Vue({
+        el: '#app',
+        data: {
+            loading: true, rawData: [], lang: 'uz', theme: 'light', lastUpdated: '-',
+            filters: { year: '', month: '', region: '', district: '', bank: '' },
+            modules: [
+                { key: 'MOD_A', field: 'A_Baho' }, { key: 'MOD_B', field: 'B_Baho' },
+                { key: 'MOD_C', field: 'C_Baho' }, { key: 'MOD_D', field: 'D_Baho' },
+                { key: 'MOD_E', field: 'E_Baho' }, { key: 'MOD_F', field: 'F_Baho' },
+                { key: 'MOD_G', field: 'G_Baho' }
+            ],
+            // Modal Config
+            showModal: false, activeModule: {}, activeModuleSubCharts: [], modalChartInstances: [],
+            sortBy: 'total', sortDesc: true, charts: {}, mapChart: null
+        },
+        computed: {
+            monthNames: function() { return translations[this.lang].months; },
+            uniqueYears: function() { return [...new Set(this.rawData.map(d => d.Vaqt ? parseInt(d.Vaqt.substring(0,4)) : 0))].filter(y=>y>0).sort().reverse(); },
+            uniqueRegions: function() { return [...new Set(this.rawData.map(d => d.Hudud).filter(Boolean))].sort(); },
+            uniqueDistricts: function() {
+                var list = this.filters.region ? this.rawData.filter(d => d.Hudud === this.filters.region) : this.rawData;
+                return [...new Set(list.map(d => d.Tuman).filter(Boolean))].sort();
+            },
+            uniqueBanks: function() { return [...new Set(this.rawData.map(d => d.Bank_Nomi).filter(Boolean))].sort(); },
+            filteredData: function() {
+                var vm = this;
+                return this.rawData.filter(function(d) {
+                    if (!d.Vaqt) return false;
+                    var y = parseInt(d.Vaqt.substring(0,4));
+                    var m = parseInt(d.Vaqt.substring(5,7));
+                    if (vm.filters.year && y !== vm.filters.year) return false;
+                    if (vm.filters.month && m !== vm.filters.month) return false;
+                    if (vm.filters.region && d.Hudud !== vm.filters.region) return false;
+                    if (vm.filters.district && d.Tuman !== vm.filters.district) return false;
+                    if (vm.filters.bank && d.Bank_Nomi !== vm.filters.bank) return false;
+                    return true;
+                });
+            },
+            sortedTableData: function() {
+                var banks = {};
+                var vm = this;
+                this.filteredData.forEach(function(item) {
+                    var name = item.Bank_Nomi;
+                    if (!banks[name]) { banks[name] = { bank: name, totalSum: 0, totalCount: 0 }; vm.modules.forEach(function(m){ banks[name][m.key] = { sum: 0, count: 0, avg: 0 }; }); }
+                    vm.modules.forEach(function(m) {
+                        var score = item[m.field]; if (score) { banks[name][m.key].sum += score; banks[name][m.key].count++; banks[name].totalSum += score; banks[name].totalCount++; }
+                    });
+                });
+                var rows = Object.values(banks).map(function(b) {
+                    vm.modules.forEach(function(m) { if (b[m.key].count > 0) b[m.key].avg = b[m.key].sum / b[m.key].count; });
+                    b.totalAvg = b.totalCount > 0 ? b.totalSum / b.totalCount : 0;
+                    return b;
+                });
+                rows = rows.filter(function(r) { return r.totalCount > 5; });
+                return rows.sort(function(a, b) {
+                    var vA, vB;
+                    if (vm.sortBy === 'bank') { vA = a.bank; vB = b.bank; return vm.sortDesc ? vA.localeCompare(vB) : vB.localeCompare(vA); }
+                    else if (vm.sortBy === 'total') { vA = a.totalAvg; vB = b.totalAvg; }
+                    else { vA = a[vm.sortBy] ? a[vm.sortBy].avg : 0; vB = b[vm.sortBy] ? b[vm.sortBy].avg : 0; }
+                    return vm.sortDesc ? vB - vA : vA - vB;
+                });
+            }
+        },
+        watch: { filteredData: 'updateCharts', lang: 'updateCharts', theme: 'updateCharts' },
+        mounted: function() { this.fetchData(); },
+        methods: {
+            t: function(k) { return translations[this.lang][k] || k; },
+            toggleTheme: function() { this.theme = this.theme==='light'?'dark':'light'; document.body.setAttribute('data-theme', this.theme); },
+            resetFilters: function() { this.filters = { year: '', month: '', region: '', district: '', bank: '' }; },
+            getModuleStat: function(f) { var s=0,c=0; this.filteredData.forEach(function(d){if(d[f]){s+=d[f];c++}}); return {avg:c?(s/c).toFixed(2):"0.00",count:c}; },
+            getColor: function(v) { if(v>=4.5)return'#28a745'; if(v>=3.5)return'#17a2b8'; if(v>=2.5)return'#ffc107'; return'#dc3545'; },
+            getScoreColorText: function(v) { return this.getColor(Number(v)); },
+            sort: function(k) { if(this.sortBy===k)this.sortDesc=!this.sortDesc; else{this.sortBy=k;this.sortDesc=true;} },
+            sortIcon: function(k) { if(this.sortBy!==k)return'fa-sort text-muted'; return this.sortDesc?'fa-sort-down':'fa-sort-up'; },
+            
+            fetchData: async function() {
+                try {
+                    var res = await fetch(API_URL);
+                    this.rawData = await res.json();
+                    if(this.rawData.length){
+                        var dates = this.rawData.map(function(d){return new Date(d.Vaqt)});
+                        var max = new Date(Math.max.apply(null,dates));
+                        this.lastUpdated = max.toLocaleDateString() + " " + max.toLocaleTimeString();
+                    }
+                    this.initCharts(); this.updateCharts();
+                }catch(e){console.error(e);alert("Xatolik!");}
+                finally{this.loading=false;}
+            },
+
+            // --- CHART LOGIC WITH DATALABELS & SORT ---
+            initCharts: function() {
+                var commonOpts = {
+                    responsive:true, maintainAspectRatio:false,
+                    plugins:{
+                        legend:{position:'bottom', display:false},
+                        datalabels:{ color:'white', font:{weight:'bold'}, formatter:Math.round }
+                    }
+                };
+                var pieOpts = { ...commonOpts, plugins:{...commonOpts.plugins, legend:{position:'bottom', display:true}} };
+                
+                this.charts.client = new Chart(document.getElementById('chartClient'), { type:'pie', data:{datasets:[{backgroundColor:['#003366','#D4AF37']}]}, options:pieOpts });
+                this.charts.age = new Chart(document.getElementById('chartAge'), { type:'doughnut', data:{datasets:[{backgroundColor:['#36A2EB','#FF6384','#FF9F40','#4BC0C0']}]}, options:pieOpts });
+                this.charts.gender = new Chart(document.getElementById('chartGender'), { type:'pie', data:{datasets:[{backgroundColor:['#36A2EB','#FF6384']}]}, options:pieOpts });
+                
+                this.charts.source = new Chart(document.getElementById('chartSource'), { type:'bar', data:{datasets:[{borderRadius:4}]}, options:{...commonOpts, scales:{y:{beginAtZero:true}}} });
+                this.charts.services = new Chart(document.getElementById('chartServices'), { type:'bar', data:{datasets:[{borderRadius:4}]}, options:{...commonOpts, scales:{y:{beginAtZero:true}}} });
+                
+                this.initMap();
+            },
+            
+            // Helper to generate gradients
+            generateColors: function(count) {
+                var colors = [];
+                for(var i=0; i<count; i++) {
+                    // Dark Blue (#003366) to lighter
+                    var lightness = 20 + (i * (60/count));
+                    colors.push(`hsl(210, 100%, ${lightness}%)`);
+                }
+                return colors;
+            },
+
+            updateCharts: function() {
+                var fd=this.filteredData;
+                var txt=this.theme==='dark'?'#e0e0e0':'#333';
+                var vm = this;
+
+                var count = function(k) { var m={};fd.forEach(function(d){var v=d[k]||"Noma'lum";m[v]=(m[v]||0)+1}); return {l:Object.keys(m),d:Object.values(m)}; };
+                
+                // Sorted & Colored Logic
+                var countSorted = function(k, split) {
+                    var m={};
+                    fd.forEach(function(d){
+                        if(split && d[k]) d[k].split(',').forEach(function(s){var v=s.trim();m[v]=(m[v]||0)+1});
+                        else if(!split) { var v=d[k]||"Noma'lum"; m[v]=(m[v]||0)+1; }
+                    });
+                    var entries = Object.entries(m).sort(function(a,b){return b[1]-a[1]}); // Descending
+                    return {
+                        l: entries.map(function(e){return e[0]}),
+                        d: entries.map(function(e){return e[1]}),
+                        c: vm.generateColors(entries.length)
+                    };
+                };
+
+                var set = function(c,d) { c.data.labels=d.l; c.data.datasets[0].data=d.d; c.update(); };
+                
+                set(this.charts.client, count('Mijoz_Tipi'));
+                set(this.charts.age, count('Yosh'));
+                set(this.charts.gender, count('Jinsi'));
+                
+                var dSrc = countSorted('Manba', false);
+                this.charts.source.data.labels = dSrc.l;
+                this.charts.source.data.datasets[0].data = dSrc.d;
+                this.charts.source.data.datasets[0].backgroundColor = dSrc.c;
+                this.charts.source.options.scales.x.ticks.color=txt;
+                this.charts.source.update();
+
+                var dSrv = countSorted('Xizmatlar', true);
+                this.charts.services.data.labels = dSrv.l;
+                this.charts.services.data.datasets[0].data = dSrv.d;
+                this.charts.services.data.datasets[0].backgroundColor = dSrv.c;
+                this.charts.services.options.scales.x.ticks.color=txt;
+                this.charts.services.update();
+
+                this.updateMap();
+            },
+
+            // --- MAP ---
+            initMap: function() {
+                this.mapChart = Highcharts.mapChart('mapContainer', {
+                    chart:{backgroundColor:'transparent'}, title:{text:''}, mapNavigation:{enabled:true,buttonOptions:{verticalAlign:'bottom'}},
+                    colorAxis:{min:0,minColor:'#E6EFFF',maxColor:'#003366'}, series:[{mapData:Highcharts.maps['countries/uz/uz-all'],joinBy:'hc-key',name:'Mijozlar',tooltip:{valueSuffix:' ta'}}],
+                    credits:{enabled:false}, exporting:{enabled:false}
+                });
+            },
+            updateMap: function() {
+                if(!this.mapChart)return;
+                var key={"Toshkent shahri":"uz-tk","Toshkent viloyati":"uz-to","Andijon viloyati":"uz-an","Buxoro viloyati":"uz-bu","Farg‘ona  viloyati":"uz-fa","Jizzax viloyati":"uz-ji","Xorazm viloyati":"uz-xo","Namangan viloyati":"uz-ng","Navoiy viloyati":"uz-nw","Qashqadaryo viloyati":"uz-qa","Qoraqalpog‘iston Respublikasi":"uz-qr","Samarqand viloyati":"uz-sa","Sirdaryo viloyati":"uz-si","Surxondaryo viloyati":"uz-su"};
+                var c={}; this.filteredData.forEach(function(d){c[d.Hudud]=(c[d.Hudud]||0)+1});
+                var data=Object.keys(c).map(function(k){return{'hc-key':key[k],value:c[k]}});
+                var isDark=this.theme==='dark';
+                this.mapChart.update({colorAxis:{stops:isDark?[[0,'#333'],[1,'#D4AF37']]:[[0,'#E6EFFF'],[1,'#003366']]}});
+                this.mapChart.series[0].setData(data);
+            },
+
+            // --- MODAL LOGIC ---
+            openModal: function(mod) {
+                this.activeModule = mod;
+                var details = {
+                    'MOD_A': [ {field: 'A_Navbat', label: 'navbat', type: 'pie'}, {field: 'A_Xodimlar', label: 'xodim', type: 'bar'}, {field: 'A_Sharoit', label: 'sharoit', type: 'pie'} ],
+                    'MOD_B': [ {field: 'B_Qiyinchilik', label: 'qiyinchilik', type: 'bar'}, {field: 'B_Tulov', label: 'tulov', type: 'pie'}, {field: 'B_Shaffoflik', label: 'shaffof', type: 'pie'} ],
+                    'MOD_C': [ {field: 'C_Muhim', label: 'muhim', type: 'bar'}, {field: 'C_Tulanish', label: 'jarayon', type: 'pie'} ],
+                    'MOD_D': [ {field: 'D_Ochish', label: 'ochish', type: 'pie'}, {field: 'D_Muammo', label: 'muammo', type: 'bar'} ],
+                    'MOD_E': [ {field: 'E_Afzallik', label: 'afzallik', type: 'bar'}, {field: 'E_Barqarorlik', label: 'barqaror', type: 'pie'} ],
+                    'MOD_F': [ {field: 'F_Topish', label: 'topish', type: 'pie'}, {field: 'F_Holat', label: 'holat', type: 'bar'} ],
+                    'MOD_G': [ {field: 'G_Kutish', label: 'kutish', type: 'pie'}, {field: 'G_Yechim', label: 'yechim', type: 'bar'} ]
+                };
+                this.activeModuleSubCharts = details[mod.key] || [];
+                this.showModal = true;
+                
+                this.$nextTick(this.renderModalCharts);
+            },
+            closeModal: function() {
+                this.showModal = false;
+                this.modalChartInstances.forEach(function(c){ c.destroy() });
+                this.modalChartInstances = [];
+            },
+            renderModalCharts: function() {
+                var vm = this;
+                this.activeModuleSubCharts.forEach(function(sub, idx) {
+                    var ctx = document.getElementById('modalChart-' + idx);
+                    if(!ctx) return;
+                    
+                    // Prepare data
+                    var fd = vm.filteredData;
+                    var m = {};
+                    fd.forEach(function(d){ 
+                        if(d[sub.field]) {
+                            var v = d[sub.field];
+                            m[v] = (m[v]||0)+1; 
+                        }
+                    });
+                    
+                    // Sort descending
+                    var entries = Object.entries(m).sort(function(a,b){return b[1]-a[1]});
+                    var labels = entries.map(function(e){return e[0]});
+                    var data = entries.map(function(e){return e[1]});
+                    
+                    // Colors
+                    var bg;
+                    if(sub.type === 'bar') {
+                        bg = vm.generateColors(data.length);
+                    } else {
+                        bg = ['#003366', '#D4AF37', '#28a745', '#dc3545', '#17a2b8', '#ffc107', '#343a40'];
+                    }
+
+                    var chart = new Chart(ctx, {
+                        type: sub.type,
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                data: data,
+                                backgroundColor: bg,
+                                borderRadius: sub.type === 'bar' ? 4 : 0
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: sub.type !== 'bar', position: 'bottom' },
+                                datalabels: { color: 'white' }
+                            },
+                            scales: sub.type === 'bar' ? {y:{beginAtZero:true}} : {}
+                        }
+                    });
+                    vm.modalChartInstances.push(chart);
+                });
+            }
+        }
+    });
+
+    window.exportTable = function() {
+        var wb=XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb,XLSX.utils.table_to_sheet(document.getElementById('ratingTable')),"CSI");
+        XLSX.writeFile(wb,"CSI_Index.xlsx");
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
+  <title>MMT Tahlil Paneli</title>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Highcharts Maps -->
+  <script src="https://code.highcharts.com/maps/highmaps.js"></script>
+  <script src="https://code.highcharts.com/mapdata/countries/uz/uz-all.js"></script>
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    :root{
+      --primary-color:#003366;
+      --accent-color:#D4AF37;
+      --bg-color:#f4f6f9;
+      --card-bg:#ffffff;
+      --text-color:#333333;
+      --border-color:#e0e0e0;
+      --gap-size:30px;
+      --shadow: 0 4px 15px rgba(0,0,0,0.06);
+      --radius: 12px;
+      --focus: 0 0 0 3px rgba(212,175,55,0.35);
+    }
+    [data-theme="dark"]{
+      --primary-color:#66b2ff;
+      --accent-color:#D4AF37;
+      --bg-color:#121212;
+      --card-bg:#1e1e1e;
+      --text-color:#e0e0e0;
+      --border-color:#333333;
+      --shadow: 0 4px 15px rgba(0,0,0,0.25);
+    }
+    *{ box-sizing:border-box; }
+    body{
+      font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
+      background-color:var(--bg-color);
+      color:var(--text-color);
+      margin:0;
+      padding:0;
+      display:flex;
+      flex-direction:column;
+      min-height:100vh;
+    }
+    .container{
+      max-width:1400px;
+      width:95%;
+      margin:20px auto;
+      flex:1;
+    }
+
+    /* LOADER */
+    .loader{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,0.82);
+      color:#fff;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      z-index:1000;
+      font-size:1.1rem;
+      letter-spacing:0.2px;
+    }
+
+    /* HEADER */
+    header{
+      background:var(--card-bg);
+      padding:22px 26px;
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      border-left:6px solid var(--accent-color);
+      display:flex;
+      flex-direction:column;
+      gap:18px;
+      margin-bottom:var(--gap-size);
+    }
+    .header-top{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      flex-wrap:wrap;
+      gap:16px;
+    }
+    .brand-box{
+      display:flex;
+      align-items:center;
+      gap:16px;
+      min-width: 260px;
+    }
+    .brand-logo{
+      height:58px;
+      width:auto;
+      flex: 0 0 auto;
+    }
+    .title-link{
+      text-decoration:none;
+      cursor:pointer;
+    }
+    .title-link h1{
+      margin:0;
+      font-size:24px;
+      color:var(--primary-color);
+      line-height:1.15;
+      transition:color .25s;
+    }
+    .title-link:hover h1{
+      color:var(--accent-color);
+      text-decoration:underline;
+    }
+    .last-updated{
+      font-size:13px;
+      opacity:.75;
+      margin-top:6px;
+      font-weight:500;
+    }
+    .top-actions{
+      display:flex;
+      gap:10px;
+      align-items:center;
+    }
+    .lang-group{
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+
+    /* CONTROLS */
+    button, select{
+      padding:8px 12px;
+      border-radius:8px;
+      border:1px solid var(--border-color);
+      background:var(--bg-color);
+      color:var(--text-color);
+      cursor:pointer;
+      font-size:14px;
+      outline:none;
+      transition:.2s;
+    }
+    button:hover, select:hover{
+      background: rgba(0,0,0,0.04);
+    }
+    [data-theme="dark"] button:hover,
+    [data-theme="dark"] select:hover{
+      background: rgba(255,255,255,0.06);
+    }
+    button:focus-visible, select:focus-visible, a:focus-visible{
+      box-shadow: var(--focus);
+      border-color: var(--accent-color);
+      outline: none;
+    }
+    select{ max-width:260px; }
+    button.active-lang{
+      background:var(--primary-color);
+      color:#fff;
+      border-color:var(--primary-color);
+    }
+    .filter-row{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      flex-wrap:wrap;
+      padding-top:14px;
+      border-top:1px solid var(--border-color);
+    }
+    .clear-btn{
+      background:#fff;
+      border:1px solid #ff4d4d;
+      color:#ff4d4d;
+    }
+    [data-theme="dark"] .clear-btn{
+      background: transparent;
+    }
+    .clear-btn:hover{
+      background:#ff4d4d;
+      color:#fff;
+    }
+    .survey-btn{
+      display:inline-block;
+      background-color:var(--primary-color);
+      color:#fff;
+      padding:9px 18px;
+      border-radius:10px;
+      text-decoration:none;
+      font-weight:700;
+      transition:background .25s, color .25s, border-color .25s;
+      font-size:14px;
+      border:1px solid var(--primary-color);
+      white-space: nowrap;
+    }
+    .survey-btn:hover{
+      background-color:var(--accent-color);
+      color:#000;
+      border-color:var(--accent-color);
+    }
+
+    /* KPI */
+    .kpi-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+      gap:var(--gap-size);
+      margin-bottom:var(--gap-size);
+    }
+    .kpi-card{
+      background:var(--card-bg);
+      padding:22px;
+      border-radius:var(--radius);
+      text-align:center;
+      box-shadow:0 2px 6px rgba(0,0,0,0.06);
+      border:1px solid var(--border-color);
+    }
+    .kpi-value{
+      font-size:36px;
+      font-weight:800;
+      color:var(--primary-color);
+      margin:10px 0 0;
+    }
+    .kpi-label{
+      font-size:12px;
+      opacity:.82;
+      text-transform:uppercase;
+      letter-spacing:.7px;
+    }
+
+    /* CHARTS */
+    .grid-2{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(540px,1fr));
+      gap:var(--gap-size);
+      margin-bottom:var(--gap-size);
+    }
+    .chart-card{
+      background:var(--card-bg);
+      padding:22px;
+      border-radius:var(--radius);
+      box-shadow:0 3px 10px rgba(0,0,0,0.06);
+      border:1px solid var(--border-color);
+      display:flex;
+      flex-direction:column;
+      height:500px;
+    }
+    .chart-card.full-width{
+      grid-column:1 / -1;
+      height:600px;
+    }
+    .chart-card.auto-height{
+      height:auto;
+      min-height:320px;
+    }
+    h3.chart-title{
+      margin:0 0 16px 0;
+      font-size:18px;
+      padding-bottom:12px;
+      border-bottom:1px solid var(--border-color);
+      color:var(--text-color);
+    }
+    .chart-wrapper{
+      flex-grow:1;
+      position:relative;
+      width:100%;
+      height:100%;
+      overflow:hidden;
+    }
+
+    /* Suggestions */
+    #suggestionsList{
+      max-height: 420px;
+      overflow:auto;
+      padding-right:10px;
+    }
+    .suggestion-item{
+      padding:14px 0;
+      border-bottom:1px solid var(--border-color);
+    }
+    .suggestion-item:last-child{ border-bottom:none; }
+    .suggestion-header{
+      font-weight:800;
+      color:var(--primary-color);
+    }
+    .suggestion-text{
+      font-style:italic;
+      opacity:.92;
+      margin-top:6px;
+      display:block;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+    .muted-empty{
+      text-align:center;
+      padding:18px;
+      color:#888;
+    }
+
+    /* Footer */
+    footer{
+      background:var(--card-bg);
+      border-top:1px solid var(--border-color);
+      padding:18px;
+      text-align:center;
+      margin-top:auto;
+    }
+    footer a{
+      color:var(--primary-color);
+      text-decoration:none;
+      font-weight:800;
+      font-size:15px;
+    }
+    footer a:hover{
+      text-decoration:underline;
+      color:var(--accent-color);
+    }
+
+    @media (max-width: 768px){
+      .grid-2{ grid-template-columns:1fr; }
+      .header-top{ flex-direction:column; text-align:center; }
+      .brand-box{ flex-direction:column; }
+      .filter-row{ justify-content:center; flex-direction:column; align-items:stretch; }
+      select, button, .survey-btn{ width:100%; }
+      .chart-card{ height: 440px; }
+      .chart-card.full-width{ height: 520px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="loader" id="loader">...</div>
+
+  <div class="container">
+    <header>
+      <div class="header-top">
+        <div class="brand-box">
+          <img
+            src="https://raw.githubusercontent.com/sunattagayev-cloud/So-rovnomalar/refs/heads/images/Logo_03.svg"
+            alt="SNS Ratings Logo"
+            class="brand-logo"
+            loading="lazy"
+          />
+          <div class="header-title">
+            <a href="https://sunattagayev-cloud.github.io/MMT-mijozlari-uchun-so-rovnoma/" target="_blank" class="title-link" rel="noopener">
+              <h1 id="t_main_title">MMT mijozlari so'rovnomasi natijalari</h1>
+            </a>
+            <div class="last-updated" id="lastUpdated">So'nggi yangilanish: ...</div>
+          </div>
+        </div>
+
+        <div class="top-actions">
+          <div class="lang-group" aria-label="Language switch">
+            <button type="button" onclick="setLang('uz')" id="btn_uz" class="active-lang">UZ</button>
+            <button type="button" onclick="setLang('ru')" id="btn_ru">RU</button>
+            <button type="button" onclick="setLang('en')" id="btn_en">EN</button>
+          </div>
+          <button type="button" onclick="toggleTheme()" title="Theme" aria-label="Toggle theme">☀️ / 🌙</button>
+        </div>
+      </div>
+
+      <div class="filter-row">
+        <select id="yearFilter"><option value="all">Yil: Barchasi</option></select>
+        <select id="monthFilter"><option value="all">Oy: Barchasi</option></select>
+        <select id="orgFilter"><option value="all">Tashkilot: Barchasi</option></select>
+
+        <button type="button" class="clear-btn" id="btn_clear" onclick="clearFilters()">Filtrni tozalash</button>
+
+        <a
+          href="https://sunattagayev-cloud.github.io/MMT-mijozlari-uchun-so-rovnoma/"
+          target="_blank"
+          class="survey-btn"
+          id="btn_take_survey"
+          rel="noopener"
+        >
+          So'rovnomadan o'ting ->
+        </a>
+      </div>
+    </header>
+
+    <!-- KPI -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label" id="t_total">Jami Anketalar</div>
+        <div class="kpi-value" id="kpiTotal">0</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label" id="t_avg_age">O'rtacha Yosh</div>
+        <div class="kpi-value" id="kpiAge">0</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label" id="t_top_region">Yetakchi Hudud</div>
+        <div class="kpi-value" id="kpiRegion" style="font-size:22px">-</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label" id="t_top_mmt">Yetakchi MMT</div>
+        <div class="kpi-value" id="kpiMMT" style="font-size:22px">-</div>
+      </div>
+    </div>
+
+    <!-- MAP -->
+    <div class="chart-card full-width">
+      <h3 class="chart-title" id="t_map_title">Hududlar bo'yicha faollik xaritasi</h3>
+      <div id="mapContainer" style="height:100%;width:100%"></div>
+    </div>
+
+    <!-- ROW 1 -->
+    <div class="grid-2">
+      <div class="chart-card">
+        <h3 class="chart-title" id="t_gender_title">Mijozlar Jinsi</h3>
+        <div class="chart-wrapper"><canvas id="genderChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3 class="chart-title" id="t_sat_title">Xizmatdan qoniqish darajasi</h3>
+        <div class="chart-wrapper"><canvas id="satChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ROW 2 -->
+    <div class="chart-card full-width">
+      <h3 class="chart-title" id="t_mmt_title">Mikromoliya tashkilotlari (ishtirok soni)</h3>
+      <div class="chart-wrapper"><canvas id="mmtChart"></canvas></div>
+    </div>
+
+    <!-- ROW 3 -->
+    <div class="grid-2">
+      <div class="chart-card">
+        <h3 class="chart-title" id="t_source_title">Reklama manbalari</h3>
+        <div class="chart-wrapper"><canvas id="sourceChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3 class="chart-title" id="t_reason_title">Mijozlar tanlash sabablari</h3>
+        <div class="chart-wrapper"><canvas id="reasonChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ROW 4 -->
+    <div class="chart-card full-width auto-height">
+      <h3 class="chart-title" id="t_sugg_title">Mijozlardan Tushgan Takliflar</h3>
+      <div id="suggestionsList"></div>
+    </div>
+  </div>
+
+  <footer>
+    <a href="https://snsratings.uz/" target="_blank" rel="noopener">© 2026 Standard and Sensitive Ratings</a>
+  </footer>
+
+  <script>
+    // --- CONFIG ---
+    const JSON_URL = "https://raw.githubusercontent.com/sunattagayev-cloud/So-rovnomalar/refs/heads/jsons/MMTlar_anketa.json"; // [1](https://onedrive.live.com?cid=ACA02FB442B351E3&id=ACA02FB442B351E3!sa0d422641cee4951a4f234478be1a026)
+
+    let rawData = [];
+    let chartInstances = {};
+    let mapInstance = null;
+    let currentLang = localStorage.getItem("mmt_lang") || "uz";
+
+    // THEME INIT
+    (function initTheme(){
+      const saved = localStorage.getItem("mmt_theme");
+      if(saved === "dark" || saved === "light"){
+        document.body.setAttribute("data-theme", saved);
+      } else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches){
+        document.body.setAttribute("data-theme", "dark");
+      }
+    })();
+
+    // TRANSLATIONS (original kept + small fixes)
+    const i18n = {
+      uz: {
+        title: "MMT mijozlari so'rovnomasi natijalari",
+        updated: "So'nggi yangilanish",
+        total: "Jami Anketalar",
+        avg_age: "O'rtacha Yosh",
+        top_region: "Yetakchi Hudud",
+        top_mmt: "Yetakchi MMT",
+        map_t: "Hududlar bo'yicha faollik xaritasi",
+        gender_t: "Mijozlar Jinsi",
+        sat_t: "Xizmatdan qoniqish darajasi",
+        mmt_t: "Mikromoliya tashkilotlari (ishtirok soni)",
+        source_t: "Reklama manbalari (Qayerdan bilishgan)",
+        reason_t: "Mijozlar nima uchun aynan sizni tanlashdi? (Sabablar)",
+        sugg_t: "Mijozlardan Tushgan Takliflar",
+        months: ["Yanvar","Fevral","Mart","Aprel","May","Iyun","Iyul","Avgust","Sentyabr","Oktyabr","Noyabr","Dekabr"],
+        filter_year: "Yil: Barchasi",
+        filter_month: "Oy: Barchasi",
+        filter_org: "Tashkilot: Barchasi",
+        gender_m: "Erkak",
+        gender_f: "Ayol",
+        loading: "Yuklanmoqda...",
+        empty_sugg: "Izohlar hali yo'q",
+        take_survey: "So'rovnomadan o'ting ->",
+        clear_filter: "Filtrni tozalash",
+        load_error: "Ma'lumot yuklanmadi. Internet yoki JSON manzilini tekshiring."
+      },
+      ru: {
+        title: "Результаты опроса клиентов МФО",
+        updated: "Последнее обновление",
+        total: "Всего анкет",
+        avg_age: "Средний возраст",
+        top_region: "Топ регион",
+        top_mmt: "Топ МФО",
+        map_t: "Карта активности по регионам",
+        gender_t: "Пол клиентов",
+        sat_t: "Уровень удовлетворенности",
+        mmt_t: "Микрофинансовые организации (количество)",
+        source_t: "Источники рекламы (Откуда узнали)",
+        reason_t: "Почему выбрали именно вас? (Причины)",
+        sugg_t: "Предложения от клиентов",
+        months: ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"],
+        filter_year: "Год: Все",
+        filter_month: "Месяц: Все",
+        filter_org: "Организация: Все",
+        gender_m: "Мужской",
+        gender_f: "Женский",
+        loading: "Загрузка...",
+        empty_sugg: "Нет предложений",
+        take_survey: "Пройти опрос ->",
+        clear_filter: "Сбросить фильтр",
+        load_error: "Не удалось загрузить данные. Проверьте интернет или JSON ссылку."
+      },
+      en: {
+        title: "MFO Customer Survey Results",
+        updated: "Last Updated",
+        total: "Total Surveys",
+        avg_age: "Average Age",
+        top_region: "Top Region",
+        top_mmt: "Top MFO",
+        map_t: "Regional Activity Map",
+        gender_t: "Customer Gender",
+        sat_t: "Satisfaction Level",
+        mmt_t: "Microfinance Organizations (Count)",
+        source_t: "Advertising Sources (How they found out)",
+        reason_t: "Why did they choose you? (Reasons)",
+        sugg_t: "Customer Suggestions",
+        months: ["January","February","March","April","May","June","July","August","September","October","November","December"],
+        filter_year: "Year: All",
+        filter_month: "Month: All",
+        filter_org: "Organization: All",
+        gender_m: "Male",
+        gender_f: "Female",
+        loading: "Loading...",
+        empty_sugg: "No suggestions yet",
+        take_survey: "Take the survey ->",
+        clear_filter: "Clear filters",
+        load_error: "Failed to load data. Check internet or JSON endpoint."
+      }
+    };
+
+    const responseTranslations = {
+      "Ha, albatta": { uz: "Ha, albatta", ru: "Да, конечно", en: "Yes, definitely" },
+      "Ha, lekin kamchiliklar bor": { uz: "Ha, lekin kamchiliklar bor", ru: "Да, но есть недостатки", en: "Yes, but with flaws" },
+      "Yo'q": { uz: "Yo'q", ru: "Нет", en: "No" },
+      "Qisman": { uz: "Qisman", ru: "Частично", en: "Partially" }
+    };
+
+    const regionMap = {
+      "Toshkent shahri": "uz-tk",
+      "Toshkent viloyati": "uz-to",
+      "Andijon viloyati": "uz-an",
+      "Buxoro viloyati": "uz-bu",
+      "Farg‘ona viloyati": "uz-fa",
+      "Farg'ona viloyati": "uz-fa",
+      "Jizzax viloyati": "uz-ji",
+      "Xorazm viloyati": "uz-xo",
+      "Namangan viloyati": "uz-ng",
+      "Navoiy viloyati": "uz-nw",
+      "Qashqadaryo viloyati": "uz-qa",
+      "Qoraqalpog‘iston Respublikasi": "uz-qr",
+      "Qoraqalpog'iston Respublikasi": "uz-qr",
+      "Samarqand viloyati": "uz-sa",
+      "Sirdaryo viloyati": "uz-si",
+      "Surxondaryo viloyati": "uz-su"
+    };
+
+    // Small helpers
+    const $ = (id) => document.getElementById(id);
+    const isDark = () => document.body.getAttribute("data-theme") === "dark";
+
+    function escapeHtml(str){
+      return String(str ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function parseDateSafe(v){
+      const d = new Date(v);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    function setLoader(on, text){
+      const loader = $("loader");
+      if(on){
+        loader.style.display = "flex";
+        loader.textContent = text || i18n[currentLang].loading;
+      } else {
+        loader.style.display = "none";
+      }
+    }
+
+    async function init(){
+      setLangUI(currentLang);
+      applyLanguage(); // sets static labels
+
+      try{
+        setLoader(true, i18n[currentLang].loading);
+        const res = await fetch(JSON_URL, { cache: "no-store" });
+        if(!res.ok) throw new Error("HTTP " + res.status);
+        rawData = await res.json();
+
+        populateFilters();
+        updateDashboard();
+        setLoader(false);
+      }catch(e){
+        console.error(e);
+        setLoader(true, i18n[currentLang].load_error);
+      }
+    }
+
+    function setLang(lang){
+      currentLang = lang;
+      localStorage.setItem("mmt_lang", lang);
+      setLangUI(lang);
+      applyLanguage();
+      updateDashboard();
+    }
+
+    function setLangUI(lang){
+      document.querySelectorAll(".lang-group button").forEach(b => b.classList.remove("active-lang"));
+      const btn = $("btn_" + lang);
+      if(btn) btn.classList.add("active-lang");
+      document.documentElement.setAttribute("lang", lang);
+    }
+
+    function applyLanguage(){
+      const t = i18n[currentLang];
+      $("t_main_title").innerText = t.title;
+      $("t_total").innerText = t.total;
+      $("t_avg_age").innerText = t.avg_age;
+      $("t_top_region").innerText = t.top_region;
+      $("t_top_mmt").innerText = t.top_mmt;
+
+      $("t_map_title").innerText = t.map_t;
+      $("t_gender_title").innerText = t.gender_t;
+      $("t_sat_title").innerText = t.sat_t;
+      $("t_mmt_title").innerText = t.mmt_t;
+      $("t_source_title").innerText = t.source_t;
+      $("t_reason_title").innerText = t.reason_t;
+      $("t_sugg_title").innerText = t.sugg_t;
+
+      $("btn_take_survey").innerText = t.take_survey;
+      $("btn_clear").innerText = t.clear_filter;
+
+      // Month options rebuild (preserve selected)
+      const ms = $("monthFilter");
+      const oldM = ms.value;
+      ms.innerHTML = `<option value="all">${t.filter_month}</option>`;
+      t.months.forEach((m, i) => {
+        const opt = document.createElement("option");
+        opt.value = String(i);
+        opt.innerText = m;
+        ms.appendChild(opt);
+      });
+      ms.value = oldM || "all";
+
+      // All labels in selects
+      const yAll = document.querySelector('#yearFilter option[value="all"]');
+      if(yAll) yAll.innerText = t.filter_year;
+
+      const oAll = document.querySelector('#orgFilter option[value="all"]');
+      if(oAll) oAll.innerText = t.filter_org;
+    }
+
+    function populateFilters(){
+      const years = new Set();
+      const orgs = new Set();
+
+      rawData.forEach(d => {
+        const dt = parseDateSafe(d.Sana);
+        if(dt) years.add(dt.getFullYear());
+        if(d.MMT) orgs.add(String(d.MMT).trim());
+      });
+
+      // Years (desc)
+      const ySelect = $("yearFilter");
+      const currentY = ySelect.value;
+      ySelect.innerHTML = `<option value="all">${i18n[currentLang].filter_year}</option>`;
+      Array.from(years).sort((a,b)=>b-a).forEach(y => {
+        const opt = document.createElement("option");
+        opt.value = String(y);
+        opt.innerText = String(y);
+        ySelect.appendChild(opt);
+      });
+      ySelect.value = currentY || "all";
+
+      // Orgs (asc)
+      const oSelect = $("orgFilter");
+      const currentO = oSelect.value;
+      oSelect.innerHTML = `<option value="all">${i18n[currentLang].filter_org}</option>`;
+      Array.from(orgs).sort((a,b)=>a.localeCompare(b)).forEach(o => {
+        const opt = document.createElement("option");
+        opt.value = o;
+        opt.innerText = o;
+        oSelect.appendChild(opt);
+      });
+      oSelect.value = currentO || "all";
+
+      // Bind events once
+      $("yearFilter").onchange = updateDashboard;
+      $("monthFilter").onchange = updateDashboard;
+      $("orgFilter").onchange = updateDashboard;
+    }
+
+    function clearFilters(){
+      $("yearFilter").value = "all";
+      $("monthFilter").value = "all";
+      $("orgFilter").value = "all";
+      updateDashboard();
+    }
+
+    function getFilteredData(){
+      const y = $("yearFilter").value;
+      const m = $("monthFilter").value;
+      const org = $("orgFilter").value;
+
+      return rawData.filter(d => {
+        const dt = parseDateSafe(d.Sana);
+        if(!dt) return false;
+
+        const matchY = (y === "all") || (dt.getFullYear() === Number(y));
+        const matchM = (m === "all") || (dt.getMonth() === Number(m));
+        const matchOrg = (org === "all") || (String(d.MMT || "").trim() === org);
+
+        return matchY && matchM && matchOrg;
+      });
+    }
+
+    function updateLastUpdated(){
+      const t = i18n[currentLang];
+      const dates = rawData
+        .map(d => parseDateSafe(d.Sana))
+        .filter(Boolean)
+        .sort((a,b)=>b-a);
+      if(dates.length){
+        const lastDate = dates[0];
+        $("lastUpdated").innerText = `${t.updated}: ${lastDate.toLocaleDateString()}, ${lastDate.toLocaleTimeString()}`;
+      } else {
+        $("lastUpdated").innerText = `${t.updated}: -`;
+      }
+    }
+
+    function countSimple(data, field){
+      const t = i18n[currentLang];
+      return data.reduce((acc, item) => {
+        let key = String(item[field] ?? "").trim();
+        if(!key) return acc;
+
+        if(field === "Jinsi"){
+          const low = key.toLowerCase();
+          if(low.includes("erkak")) key = t.gender_m;
+          if(low.includes("ayol")) key = t.gender_f;
+        }
+
+        if(field === "Qoniqish" && responseTranslations[key] && responseTranslations[key][currentLang]){
+          key = responseTranslations[key][currentLang];
+        }
+
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {});
+    }
+
+    function countMulti(data, field){
+      const counts = {};
+      data.forEach(item => {
+        const v = item[field];
+        if(!v) return;
+        String(v).split(",").forEach(part => {
+          const p = part.trim();
+          if(!p) return;
+          counts[p] = (counts[p] || 0) + 1;
+        });
+      });
+      return counts;
+    }
+
+    function sortEntries(obj){
+      return Object.entries(obj).sort((a,b)=>b[1]-a[1]);
+    }
+
+    function drawChart(id, type, labels, values, bgColors, options = {}){
+      if(chartInstances[id]) chartInstances[id].destroy();
+
+      const ctx = document.getElementById(id).getContext("2d");
+      const txtColor = isDark() ? "#e0e0e0" : "#333";
+      const gridColor = isDark() ? "#444" : "#ddd";
+
+      chartInstances[id] = new Chart(ctx, {
+        type,
+        data: {
+          labels,
+          datasets: [{
+            label: "Soni",
+            data: values,
+            backgroundColor: bgColors,
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: options.indexAxis || "x",
+          plugins: {
+            legend: {
+              display: !options.noLegend,
+              labels: { color: txtColor }
+            },
+            tooltip: { enabled: true }
+          },
+          scales: (type === "pie" || type === "doughnut") ? {} : {
+            y: { ticks: { color: txtColor }, grid: { color: gridColor } },
+            x: { ticks: { color: txtColor }, grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    function renderMap(regCounts){
+      const seriesData = [];
+      Object.keys(regCounts).forEach(r => {
+        if(regionMap[r]) seriesData.push([regionMap[r], regCounts[r]]);
+      });
+
+      const stops = isDark()
+        ? [[0, "#2c3e50"], [1, "#3498db"]]
+        : [[0, "#E6F3FF"], [1, "#003366"]];
+
+      const bg = isDark() ? "#1e1e1e" : "#ffffff";
+
+      if(!mapInstance){
+        mapInstance = Highcharts.mapChart("mapContainer", {
+          chart: { backgroundColor: bg },
+          title: { text: "" },
+          mapNavigation: { enabled: true },
+          colorAxis: { stops, min: 0 },
+          series: [{
+            data: seriesData,
+            mapData: Highcharts.maps["countries/uz/uz-all"],
+            joinBy: "hc-key",
+            name: "Mijozlar"
+          }],
+          exporting: { enabled: false },
+          credits: { enabled: false }
+        });
+      } else {
+        mapInstance.series[0].setData(seriesData, true, false, false);
+        mapInstance.update({ chart: { backgroundColor: bg }, colorAxis: { stops } }, false);
+        mapInstance.redraw();
+      }
+    }
+
+    function renderSuggestions(data){
+      const t = i18n[currentLang];
+      const listDiv = $("suggestionsList");
+      listDiv.innerHTML = "";
+
+      const suggestions = data
+        .filter(i => i.Taklif && String(i.Taklif).trim().length > 2)
+        .slice()
+        .reverse();
+
+      if(!suggestions.length){
+        listDiv.innerHTML = `<div class="muted-empty">${t.empty_sugg}</div>`;
+        return;
+      }
+
+      const frag = document.createDocumentFragment();
+      suggestions.forEach(item => {
+        const el = document.createElement("div");
+        el.className = "suggestion-item";
+
+        const name = escapeHtml(item.Ism ?? "");
+        const org = escapeHtml(item.MMT ?? "");
+        const txt = escapeHtml(item.Taklif ?? "");
+
+        el.innerHTML =
+          `<div class="suggestion-header">${name} <span style="font-weight:normal;font-size:0.9em">(${org})</span></div>
+           <span class="suggestion-text">"${txt}"</span>`;
+        frag.appendChild(el);
+      });
+      listDiv.appendChild(frag);
+    }
+
+    function updateDashboard(){
+      if(!rawData || !rawData.length) return;
+
+      updateLastUpdated();
+
+      const data = getFilteredData();
+      const t = i18n[currentLang];
+
+      // KPI
+      $("kpiTotal").innerText = data.length;
+
+      const avgAge = data.length
+        ? Math.round(data.reduce((a,b)=> a + (Number(b.Yosh) || 0), 0) / data.length)
+        : 0;
+      $("kpiAge").innerText = avgAge;
+
+      const regData = countSimple(data, "Hudud");
+      const mmtData = countSimple(data, "MMT");
+      const sortedMMT = sortEntries(mmtData);
+
+      $("kpiRegion").innerText = (sortEntries(regData)[0]?.[0]) || "-";
+      $("kpiMMT").innerText = (sortedMMT[0]?.[0]) || "-";
+
+      // MAP
+      renderMap(regData);
+
+      // Gender chart
+      const genderD = countSimple(data, "Jinsi");
+      const genderLabels = Object.keys(genderD);
+      const genderBg = genderLabels.map(l => {
+        const ll = l.toLowerCase();
+        return (ll.includes("ayol") || ll.includes("fem") || ll.includes("жен")) ? "#FF7043" : "#00897B";
+      });
+      drawChart("genderChart", "pie", genderLabels, Object.values(genderD), genderBg);
+
+      // Satisfaction chart
+      const satData = countSimple(data, "Qoniqish");
+      drawChart("satChart", "doughnut", Object.keys(satData), Object.values(satData),
+        ["#00A86B", "#FFCE56", "#FF6384", "#4BC0C0"]
+      );
+
+      // MMT chart (horizontal)
+      drawChart("mmtChart", "bar",
+        sortedMMT.map(i=>i[0]),
+        sortedMMT.map(i=>i[1]),
+        "#4BC0C0",
+        { indexAxis: "y", noLegend: true }
+      );
+
+      // Source chart
+      const sourceData = countSimple(data, "Manba");
+      drawChart("sourceChart", "bar",
+        Object.keys(sourceData),
+        Object.values(sourceData),
+        "#9966FF",
+        { noLegend: true }
+      );
+
+      // Reason chart (multi-select)
+      const reasonSorted = sortEntries(countMulti(data, "Sabab"));
+      drawChart("reasonChart", "bar",
+        reasonSorted.map(i=>i[0]),
+        reasonSorted.map(i=>i[1]),
+        "#FF9F40",
+        { noLegend: true }
+      );
+
+      // Suggestions
+      renderSuggestions(data);
+    }
+
+    function toggleTheme(){
+      const now = document.body.getAttribute("data-theme") === "dark" ? "light" : "dark";
+      document.body.setAttribute("data-theme", now);
+      localStorage.setItem("mmt_theme", now);
+
+      // Re-render charts with new colors
+      updateDashboard();
+    }
+
+    // start
+    init();
+  </script>
+</body>
+</html>
