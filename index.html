@@ -233,7 +233,8 @@
     <div class="header-content">
       <div class="brand">
         <img src="https://raw.githubusercontent.com/sunattagayev-cloud/So-rovnomalar/refs/heads/images/Logo_03.svg" alt="Logo">
-        <h1>SO'ROVNOMALAR<br>NATIJALARI</h1>
+        <!-- O'ZGARISH: Statik matn o'rniga Vue variable ishlatildi, v-html <br> uchun kerak -->
+        <h1 v-html="t('header_main_title')"></h1>
       </div>
       
       <div class="controls">
@@ -256,8 +257,9 @@
     </div>
 
     <div class="dashboard-grid">
+      
       <!-- Tijorat Banklari -->
-      <a href="https://raw.githubusercontent.com/sunattagayev-cloud/So-rovnomalar/refs/heads/main/Bank_dashboard.html" class="card" target="_blank">
+      <a href="Bank_dashboard.html" class="card">
         <div class="icon-box"><i class="fas fa-university"></i></div>
         <div class="card-title">{{ t('bank_title') }}</div>
         <div class="card-desc">{{ t('bank_desc') }}</div>
@@ -265,7 +267,7 @@
       </a>
 
       <!-- Sug'urta -->
-      <a href="https://raw.githubusercontent.com/sunattagayev-cloud/So-rovnomalar/refs/heads/main/Insurance_Dashboard.html" class="card" target="_blank">
+      <a href="Insurance_Dashboard.html" class="card">
         <div class="icon-box"><i class="fas fa-shield-alt"></i></div>
         <div class="card-title">{{ t('insurance_title') }}</div>
         <div class="card-desc">{{ t('insurance_desc') }}</div>
@@ -273,7 +275,7 @@
       </a>
 
       <!-- Mikromoliya -->
-      <a href="https://raw.githubusercontent.com/sunattagayev-cloud/So-rovnomalar/refs/heads/main/Lombard_Dashboard.html" class="card" target="_blank">
+      <a href="Lombard_Dashboard.html" class="card">
         <div class="icon-box"><i class="fas fa-hand-holding-usd"></i></div>
         <div class="card-title">{{ t('mfo_title') }}</div>
         <div class="card-desc">{{ t('mfo_desc') }}</div>
@@ -281,7 +283,7 @@
       </a>
 
       <!-- Lombardlar -->
-      <a href="https://raw.githubusercontent.com/sunattagayev-cloud/So-rovnomalar/refs/heads/main/MMT_Dashboard.html" class="card" target="_blank">
+      <a href="MMT_Dashboard.html" class="card">
         <div class="icon-box"><i class="fas fa-gem"></i></div>
         <div class="card-title">{{ t('pawn_title') }}</div>
         <div class="card-desc">{{ t('pawn_desc') }}</div>
@@ -298,61 +300,49 @@
 <script>
   const translations = {
     uz: {
-      welcome_title: "Moliya Bozorini Tahlil Qiling",
-      welcome_desc: "Barcha moliyaviy so'rovnoma natijalari va tahlillari yagona portalda jamlangan.",
-      
+      header_main_title: "SO'ROVNOMALAR<br>NATIJALARI", // Qo'shildi
+      welcome_title: "Moliya Bozori Tahlili",
+      welcome_desc: "Barcha so'rovnoma natijalari va tahlillari yagona portalda jamlangan.",
       bank_title: "Tijorat Banklari",
       bank_desc: "Bank xizmatlari sifati, mijozlar qoniqishi va reytinglari bo'yicha batafsil tahlillar.",
-      
       insurance_title: "Sug'urta Tashkilotlari",
       insurance_desc: "Sug'urta kompaniyalarining mijozlarga xizmat ko'rsatish darajasi va ishonchliligi.",
-      
       mfo_title: "Mikromoliya Tashkilotlari",
       mfo_desc: "Kreditlash shartlari va mikromoliya bozoridagi tendensiyalar tahlili.",
-      
       pawn_title: "Lombardlar",
       pawn_desc: "Lombard xizmatlaridan foydalanuvchilar fikri va bozor ko'rsatkichlari.",
-      
       view_btn: "Natijalarni ko'rish",
       theme: "Mavzuni o'zgartirish",
       footer_note: "Barcha huquqlar himoyalangan."
     },
     ru: {
+      header_main_title: "РЕЗУЛЬТАТЫ<br>ОПРОСОВ", // Qo'shildi
       welcome_title: "Анализ Финансового Рынка",
-      welcome_desc: "Все результаты финансовых опросов и аналитика собраны на едином портале.",
-      
+      welcome_desc: "Все результаты опросов и аналитика собраны на едином портале.",
       bank_title: "Коммерческие Банки",
       bank_desc: "Детальный анализ качества банковских услуг, удовлетворенности клиентов и рейтингов.",
-      
       insurance_title: "Страховые Компании",
       insurance_desc: "Уровень обслуживания клиентов и надежность страховых компаний.",
-      
       mfo_title: "Микрофинансовые Организации",
       mfo_desc: "Анализ условий кредитования и тенденций на рынке микрофинансирования.",
-      
       pawn_title: "Ломбарды",
       pawn_desc: "Мнения пользователей услуг ломбардов и рыночные показатели.",
-      
       view_btn: "Смотреть результаты",
       theme: "Сменить тему",
       footer_note: "Все права защищены."
     },
     en: {
+      header_main_title: "SURVEY<br>RESULTS", // Qo'shildi
       welcome_title: "Analyze Financial Markets",
-      welcome_desc: "All financial survey results and analytics gathered in a single portal.",
-      
+      welcome_desc: "All survey results and analytics gathered in a single portal.",
       bank_title: "Commercial Banks",
       bank_desc: "Detailed analysis of banking service quality, customer satisfaction, and ratings.",
-      
       insurance_title: "Insurance Companies",
       insurance_desc: "Customer service levels and reliability of insurance companies.",
-      
       mfo_title: "Microfinance Organizations",
       mfo_desc: "Analysis of lending conditions and trends in the microfinance market.",
-      
       pawn_title: "Pawnshops",
       pawn_desc: "User feedback on pawnshop services and market indicators.",
-      
       view_btn: "View Results",
       theme: "Toggle Theme",
       footer_note: "All rights reserved."
